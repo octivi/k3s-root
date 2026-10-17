@@ -34,6 +34,10 @@ jobs:
         build-args: |
           BUILDARCH=${{ matrix.arch }}
 
+    - name: Test nftables userspace compatibility
+      if: matrix.arch == 'amd64'
+      run: tests/test_nft_skew
+
     - name: Compute Checksums
       run: |
         cd dist
