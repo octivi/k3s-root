@@ -32,6 +32,10 @@ jobs:
         build-args: |
           BUILDARCH=${{ matrix.arch }}
 
+    - name: Test nftables userspace compatibility
+      if: matrix.arch == 'amd64'
+      run: tests/test_nft_skew
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:

@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+readonly archive='dist/k3s-root-amd64.tar'
+readonly test_id="${$}"
+readonly reader_image="local/k3s-root-nft-reader:test-${test_id}"
+readonly writer_image="local/k3s-root-nft-debian:test-${test_id}"
+readonly holder="k3s-root-nft-skew-${test_id}"
+
+cleanup() {
+  docker container rm --force "${holder}" >/dev/null 2>&1 || true
+  docker image rm --force "${reader_image}" "${writer_image}" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+if [[ ! -f "${archive}" ]]; then
+  echo "Missing ${archive}; build the amd64 artifact first" >&2
+  exit 1
+fi
+
+docker build \
+  --file tests/Dockerfile.nft-reader \
+  --tag "${reader_image}" \
+  dist
+docker build \
+  --file tests/Dockerfile.nft-debian-trixie \
+  --tag "${writer_image}" \
+  .
+
+reader_version="$(docker run --rm "${reader_image}" --version)"
+writer_version="$(docker run --rm "${writer_image}" --version)"
+
+printf 'k3s-root reader: %s\nDebian writer: %s\n' \
+  "${reader_version}" \
+  "${writer_version}"
+
+[[ "${reader_version}" == 'nftables v1.1.4'* ]]
+[[ "${writer_version}" == 'nftables v1.1.3'* ]]
+
+docker run \
+  --detach \
+  --name "${holder}" \
+  --entrypoint /bin/sleep \
+  "${writer_image}" \
+  300 >/dev/null
+
+run_nft() {
+  local image="$1"
+  shift
+
+  docker run \
+    --rm \
+    --cap-add NET_ADMIN \
+    --network "container:${holder}" \
+    "${image}" \
+    "$@"
+}
+
+# Debian 13 writes the ruleset; the k3s-root binary must be able to read it.
+run_nft "${writer_image}" add table inet octivi_skew
+run_nft "${writer_image}" add set inet octivi_skew interfaces \
+  '{ type ifname; elements = { "lo" }; }'
+run_nft "${reader_image}" list ruleset >/dev/null
+run_nft "${writer_image}" delete table inet octivi_skew
+
+# Verify the reverse direction as well.
+run_nft "${reader_image}" add table inet octivi_skew
+run_nft "${reader_image}" add set inet octivi_skew interfaces \
+  '{ type ifname; elements = { "lo" }; }'
+run_nft "${writer_image}" list ruleset >/dev/null
+
+echo 'Bidirectional nftables userspace compatibility verified'

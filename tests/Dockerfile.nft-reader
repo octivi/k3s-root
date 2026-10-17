@@ -1,0 +1,5 @@
+FROM scratch
+
+ADD k3s-root-amd64.tar /
+
+ENTRYPOINT ["/bin/aux/nft"]
