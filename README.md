@@ -3,7 +3,7 @@
 
 `k3s-root` is based on https://github.com/buildroot/buildroot and provides the userspace binaries for `k3s-io/k3s`
 
-The Octivi build carries nftables 1.1.4 and libnftnl 1.3.0. Its CI verifies bidirectional
+The Octivi build carries nftables 1.1.7 and libnftnl 1.3.2. Its CI verifies bidirectional
 compatibility with nftables 1.1.3 from Debian 13, because older nftables clients can crash while
 reading rulesets produced by that host version.
 

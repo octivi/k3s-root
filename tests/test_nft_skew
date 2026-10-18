@@ -35,7 +35,7 @@ printf 'k3s-root reader: %s\nDebian writer: %s\n' \
   "${reader_version}" \
   "${writer_version}"
 
-[[ "${reader_version}" == 'nftables v1.1.4'* ]]
+[[ "${reader_version}" == 'nftables v1.1.7'* ]]
 [[ "${writer_version}" == 'nftables v1.1.3'* ]]
 
 docker run \
